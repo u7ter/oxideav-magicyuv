@@ -79,23 +79,23 @@ impl fmt::Display for Error {
                 "oxideav-magicyuv: truncated {what} (need {needed} bytes, have {have})"
             ),
             Self::BadMagic => f.write_str(
-                "oxideav-magicyuv: bad MAGY magic at frame header offset 0 (spec/01 \u00a71)",
+                "oxideav-magicyuv: bad MAGY magic at frame header offset 0",
             ),
             Self::BadHeaderSize(n) => write!(
                 f,
-                "oxideav-magicyuv: header_size {n:#x} != 0x20 \u2014 v7 header must be exactly 32 bytes"
+                "oxideav-magicyuv: header_size {n:#x} != 0x20"
             ),
             Self::BadVersion(v) => write!(
                 f,
-                "oxideav-magicyuv: version {v} > 7 \u2014 decoder accepts versions 0..=7 (spec/01 \u00a72)"
+                "oxideav-magicyuv: version {v} > 7"
             ),
             Self::UnsupportedFormatByte(b) => write!(
                 f,
-                "oxideav-magicyuv: format_byte {b:#04x} not in the supported native set (spec/01 \u00a74.1)"
+                "oxideav-magicyuv: format_byte {b:#04x} not in the supported native set"
             ),
             Self::AuxByteMismatch { got, expected } => write!(
                 f,
-                "oxideav-magicyuv: aux_byte {got:#04x} mismatches expected {expected:#04x} (spec/01 \u00a73.0)"
+                "oxideav-magicyuv: aux_byte {got:#04x} mismatches expected {expected:#04x}"
             ),
             Self::ZeroDimension { what } => {
                 write!(f, "oxideav-magicyuv: {what} field is zero")
@@ -106,7 +106,7 @@ impl fmt::Display for Error {
             ),
             Self::BadPredictorId(b) => write!(
                 f,
-                "oxideav-magicyuv: predictor_id {b:#04x} not in {{0x01, 0x02, 0x03}} (spec/04 \u00a71.2)"
+                "oxideav-magicyuv: predictor_id {b:#04x} not in {{0x01, 0x02, 0x03}}"
             ),
             Self::SliceTruncated { slice_index } => write!(
                 f,
@@ -114,30 +114,30 @@ impl fmt::Display for Error {
             ),
             Self::HuffmanOverfull { plane } => write!(
                 f,
-                "oxideav-magicyuv: plane {plane} Huffman descriptor over-full (spec/05 \u00a72.0.3)"
+                "oxideav-magicyuv: plane {plane} Huffman descriptor over-full"
             ),
             Self::HuffmanIncomplete { plane } => write!(
                 f,
-                "oxideav-magicyuv: plane {plane} Huffman descriptor incomplete / under-full (spec/05 \u00a72.1)"
+                "oxideav-magicyuv: plane {plane} Huffman descriptor incomplete"
             ),
             Self::HuffmanLengthExceedsMax { plane, got, max } => write!(
                 f,
-                "oxideav-magicyuv: plane {plane} Huffman length {got} > {max} (spec/05 \u00a71.1)"
+                "oxideav-magicyuv: plane {plane} Huffman length {got} > {max}"
             ),
             Self::SlicePrefixMissing { slice_index } => write!(
                 f,
-                "oxideav-magicyuv: slice {slice_index} has no 2-byte prefix (spec/04 \u00a71)"
+                "oxideav-magicyuv: slice {slice_index} has no 2-byte prefix"
             ),
             Self::OddDimensionForSubsampling { what, got, factor } => write!(
                 f,
-                "oxideav-magicyuv: {what} {got} is not divisible by chroma subsampling factor {factor} (spec/03 \u00a78.2)"
+                "oxideav-magicyuv: {what} {got} is not divisible by chroma factor {factor}"
             ),
             Self::SliceHeightNotDivisibleBySubsampling {
                 slice_height,
                 factor,
             } => write!(
                 f,
-                "oxideav-magicyuv: slice_height {slice_height} is not divisible by chroma vertical subsampling factor {factor}"
+                "oxideav-magicyuv: slice_height {slice_height} not divisible by chroma factor {factor}"
             ),
             Self::EncoderInputMismatch {
                 plane,
@@ -153,7 +153,7 @@ impl fmt::Display for Error {
                 num_planes,
             } => write!(
                 f,
-                "oxideav-magicyuv: slice {slice_index} per_slice_plane_index {got} invalid for {num_planes}-plane frame (spec/02 \u00a77.3)"
+                "oxideav-magicyuv: slice {slice_index} plane index {got} invalid for {num_planes} planes"
             ),
             Self::TooManySlices { got, max } => write!(
                 f,
