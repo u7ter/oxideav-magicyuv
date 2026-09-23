@@ -1,0 +1,6 @@
+# reviewdog defaults for this fork
+runner:
+  clippy:
+    cmd: cargo clippy --no-default-features --lib --message-format=json -- -D warnings
+    errorformat:
+      - "%f:%l:%c: %m"

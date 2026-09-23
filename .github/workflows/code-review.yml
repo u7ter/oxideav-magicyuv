@@ -1,0 +1,125 @@
+name: Code review bot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  clippy-review:
+    name: clippy reviewdog
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Clippy → PR review comments
+        uses: reviewdog/action-clippy@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clippy_flags: --no-default-features --lib -- -D warnings
+          reporter: github-pr-review
+          filter_mode: added
+          fail_on_error: true
+          level: warning
+
+  rustfmt-review:
+    name: rustfmt reviewdog
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: reviewdog/action-setup@v1
+        with:
+          reviewdog_version: latest
+      - name: rustfmt → PR annotations
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo fmt --all -- --check --emit=stdout 2>&1 | \
+            reviewdog -name=rustfmt -reporter=github-pr-check -filter-mode=nofilter -fail-on-error=false || true
+
+  bounds-checklist:
+    name: bounds-check reminder
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Comment if decoder/slice table touched without tests
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            const names = files.map(f => f.filename);
+            const touchesDecoder = names.some(n =>
+              n === 'src/decoder.rs' || n === 'src/slice_bounds.rs' || n === 'src/header.rs'
+            );
+            const touchesTests = names.some(n =>
+              n.includes('slice_bounds') || n.includes('roundtrip') || n.endsWith('decoder.rs')
+            );
+            if (!touchesDecoder) {
+              core.info('no decoder/header changes');
+              return;
+            }
+            const body = [
+              '### Bounds-check review bot',
+              '',
+              'Цей PR чіпає decoder / header / slice table.',
+              'Чеклист (PixelSmash / CVE-2026-8461 class):',
+              '',
+              '- [ ] `checked_add` / `checked_mul` на offset таблиці',
+              '- [ ] монотонність slice offsets',
+              '- [ ] slice start ≥ preamble_end',
+              '- [ ] кап `MAX_SLICES`',
+              '- [ ] негативний тест на ворожий header',
+              '',
+              touchesTests
+                ? 'Looks like test files were touched — good.'
+                : '⚠️ No test file change detected. Add a negative test before merge.',
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const marker = '### Bounds-check review bot';
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
